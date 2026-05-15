@@ -9,7 +9,7 @@ import StarField from "./StarField";
 import { useGPUTier } from "@/hooks/useGPUTier";
 
 interface BlackHoleSceneProps {
-  scrollProgress?: number;
+  inView?: boolean;
   interactionX?: number;
   interactionY?: number;
   blackHoleScale?: number;
@@ -17,7 +17,7 @@ interface BlackHoleSceneProps {
 }
 
 export default function BlackHoleScene({
-  scrollProgress = 0,
+  inView = true,
   blackHoleScale = 1,
   className = "",
 }: BlackHoleSceneProps) {
@@ -32,6 +32,7 @@ export default function BlackHoleScene({
   return (
     <Canvas
       className={className}
+      frameloop={inView ? "always" : "never"}
       dpr={perf.dpr}
       camera={{ position: [0, 2, 18], fov: 60, near: 0.1, far: 500 }}
       gl={{
@@ -69,10 +70,7 @@ export default function BlackHoleScene({
         <StarField count={perf.starCount} />
 
         {/* Main black hole */}
-        <BlackHoleMesh
-          ref={blackHoleRef}
-          scrollProgress={scrollProgress}
-        />
+        <BlackHoleMesh ref={blackHoleRef} />
 
         {/* Orbiting planets */}
         <Planets count={perf.planetCount} />

@@ -3,7 +3,6 @@
 import { lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useScrollProgress } from "@/hooks/useScrollProgress";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 
 const NavBar = dynamic(() => import("@/components/ui/NavBar"), { ssr: false });
@@ -27,7 +26,6 @@ function SectionSkeleton() {
 }
 
 export default function Home() {
-  const { scrollProgress } = useScrollProgress();
   const { muted, toggleMute, triggerPulse, triggerNarration } = useAmbientAudio();
 
   return (
@@ -36,13 +34,13 @@ export default function Home() {
       <LoadingScreen />
 
       {/* Scroll-reactive atmosphere overlays */}
-      <SpaceAtmosphere scrollProgress={scrollProgress} />
+      <SpaceAtmosphere />
 
       {/* Navigation — transparent until scroll */}
       <NavBar muted={muted} onToggleMute={toggleMute} />
 
       {/* Hero — full viewport, 3D canvas */}
-      <HeroSection scrollProgress={scrollProgress} />
+      <HeroSection />
 
       {/* Journey sections — progressively rendered */}
       <Suspense fallback={<SectionSkeleton />}>

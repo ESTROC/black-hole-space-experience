@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, Suspense } from "react";
-import { motion } from "framer-motion";
+import { Suspense, useRef } from "react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import dynamic from "next/dynamic";
 
 const BlackHoleScene = dynamic(() => import("@/components/3d/BlackHoleScene"), {
@@ -17,29 +17,28 @@ const BlackHoleScene = dynamic(() => import("@/components/3d/BlackHoleScene"), {
 });
 
 interface HeroSectionProps {
-  scrollProgress: number;
   blackHoleScale?: number;
 }
 
-export default function HeroSection({ scrollProgress, blackHoleScale = 1 }: HeroSectionProps) {
-  const textRef = useRef<HTMLDivElement>(null);
+export default function HeroSection({ blackHoleScale = 1 }: HeroSectionProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(containerRef, { margin: "0px 0px 200px 0px" });
 
-  useEffect(() => {
-    if (!textRef.current) return;
-    const y = scrollProgress * 120;
-    const o = 1 - scrollProgress * 4;
-    textRef.current.style.transform = `translateY(${y}px)`;
-    textRef.current.style.opacity = `${Math.max(0, o)}`;
-  }, [scrollProgress]);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"],
+  });
 
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
   return (
-    <section id="hero" className="relative w-full overflow-hidden" style={{ height: "100svh" }}>
+    <section ref={containerRef} id="hero" className="relative w-full overflow-hidden" style={{ height: "100svh" }}>
 
       {/* Full-screen 3D Canvas */}
       <div className="absolute inset-0 z-0">
         <Suspense fallback={null}>
           <BlackHoleScene
-            scrollProgress={scrollProgress}
+            inView={isInView}
             blackHoleScale={blackHoleScale}
             className="w-full h-full"
           />
@@ -57,10 +56,9 @@ export default function HeroSection({ scrollProgress, blackHoleScale = 1 }: Hero
         style={{ background: "linear-gradient(to left, rgba(0,0,5,0.6), transparent)" }} />
 
       {/* Cinematic text */}
-      <div
-        ref={textRef}
+      <motion.div
         className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center px-6"
-        style={{ willChange: "transform, opacity" }}
+        style={{ y: textY, opacity: textOpacity }}
       >
         {/* Chapter badge */}
         <motion.div
@@ -112,7 +110,7 @@ export default function HeroSection({ scrollProgress, blackHoleScale = 1 }: Hero
             Begin Journey
           </button>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Scroll indicator */}
       <motion.div

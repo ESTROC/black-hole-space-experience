@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
 import dynamic from "next/dynamic";
 import HandTrackingModal from "@/components/ui/HandTrackingModal";
@@ -23,6 +23,7 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
   const [isPinchPulsing, setIsPinchPulsing] = useState(false);
   const [mousePosState, setMousePosState] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(canvasRef, { margin: "0px 0px 200px 0px" });
   const perf = useGPUTier();
 
   const { status, handData, start, stop } = useMediaPipe();
@@ -245,6 +246,7 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
               style={{ background: "radial-gradient(ellipse at center, #050518 0%, #000005 100%)" }}
             >
               <Canvas
+                frameloop={isInView ? "always" : "never"}
                 dpr={perf.dpr}
                 camera={{ position: [0, 0, 18], fov: 50, near: 0.1, far: 300 }}
                 gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}

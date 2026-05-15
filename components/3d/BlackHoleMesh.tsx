@@ -227,12 +227,8 @@ export interface BlackHoleMeshRef {
   setSize: (scale: number) => void;
 }
 
-interface BlackHoleMeshProps {
-  scrollProgress?: number;
-}
-
-const BlackHoleMesh = forwardRef<BlackHoleMeshRef, BlackHoleMeshProps>(
-  function BlackHoleMesh({ scrollProgress = 0 }, ref) {
+const BlackHoleMesh = forwardRef<BlackHoleMeshRef>(
+  function BlackHoleMesh(props, ref) {
     const groupRef = useRef<THREE.Group>(null);
     const diskRef = useRef<THREE.Mesh>(null);
     const diskMatRef = useRef<InstanceType<typeof AccretionDiskMaterial>>(null);
@@ -269,8 +265,11 @@ const BlackHoleMesh = forwardRef<BlackHoleMeshRef, BlackHoleMeshProps>(
         // Subtle float
         groupRef.current.position.y = Math.sin(t * 0.5) * 0.3;
 
-        // Scroll-based rotation
-        groupRef.current.rotation.y = scrollProgress * Math.PI * 0.5;
+        // Native Scroll-based rotation (bypasses React state)
+        const scrollY = window.scrollY || 0;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const p = maxScroll > 0 ? scrollY / maxScroll : 0;
+        groupRef.current.rotation.y = p * Math.PI * 0.5;
       }
 
       // Glow pulse

@@ -1,10 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
-interface SpaceAtmosphereProps {
-  scrollProgress: number;
-}
+import { motion, useScroll, useTransform } from "framer-motion";
 
 /**
  * SpaceAtmosphere — a full-page cinematic overlay that reacts to scroll.
@@ -13,69 +9,52 @@ interface SpaceAtmosphereProps {
  * - subtle color grading shifts toward deep purple/void
  * - radial nebula glow shifts position
  *
- * Pure CSS + requestAnimationFrame — zero GPU cost.
+ * Uses Framer Motion's useScroll/useTransform for native 60fps performance 
+ * without triggering React renders.
  */
-export default function SpaceAtmosphere({ scrollProgress }: SpaceAtmosphereProps) {
-  const vignetteRef = useRef<HTMLDivElement>(null);
-  const nebulaRef = useRef<HTMLDivElement>(null);
-  const gradRef = useRef<HTMLDivElement>(null);
+export default function SpaceAtmosphere() {
+  const { scrollYProgress } = useScroll();
 
-  useEffect(() => {
-    const p = scrollProgress;
+  // Vignette: darkens as user travels deeper
+  const vignetteOpacity = useTransform(scrollYProgress, [0, 1], [0, 0.45]);
 
-    // Vignette: darkens as user travels deeper (0 → 0.45 opacity)
-    if (vignetteRef.current) {
-      const intensity = Math.min(0.45, p * 0.55);
-      vignetteRef.current.style.opacity = `${intensity}`;
-    }
+  // Nebula glow position: shifts from top-center to bottom-center
+  const nebulaY = useTransform(scrollYProgress, [0, 1], ["30%", "70%"]);
+  const nebulaHue = useTransform(scrollYProgress, [0, 1], [270, 230]);
+  const nebulaBackground = useTransform(
+    () => `radial-gradient(ellipse at 50% ${nebulaY.get()}, hsla(${nebulaHue.get()},70%,30%,0.12) 0%, transparent 65%)`
+  );
 
-    // Nebula glow: shifts from top-center (hero) to bottom-center (ending)
-    if (nebulaRef.current) {
-      const yPos = 30 + p * 40; // 30% → 70%
-      const hue = Math.round(270 - p * 40); // purple → deep blue
-      nebulaRef.current.style.background =
-        `radial-gradient(ellipse at 50% ${yPos}%, hsla(${hue},70%,30%,0.12) 0%, transparent 65%)`;
-    }
-
-    // Atmospheric color shift overlay
-    if (gradRef.current) {
-      const darkness = Math.min(0.35, p * 0.45);
-      gradRef.current.style.opacity = `${darkness}`;
-    }
-  }, [scrollProgress]);
+  // Atmospheric color shift overlay
+  const gradOpacity = useTransform(scrollYProgress, [0, 1], [0, 0.35]);
 
   return (
     <>
       {/* Vignette edges */}
-      <div
-        ref={vignetteRef}
+      <motion.div
         className="journey-overlay"
         style={{
-          background:
-            "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,5,0.9) 100%)",
-          opacity: 0,
+          background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,5,0.9) 100%)",
+          opacity: vignetteOpacity,
           pointerEvents: "none",
         }}
       />
 
       {/* Moving nebula glow */}
-      <div
-        ref={nebulaRef}
+      <motion.div
         className="journey-overlay"
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 30%, rgba(90,30,180,0.12) 0%, transparent 65%)",
+          background: nebulaBackground,
           pointerEvents: "none",
         }}
       />
 
       {/* Deep space color grading */}
-      <div
-        ref={gradRef}
+      <motion.div
         className="journey-overlay"
         style={{
           background: "linear-gradient(180deg, transparent 0%, rgba(0,0,8,0.6) 100%)",
-          opacity: 0,
+          opacity: gradOpacity,
           pointerEvents: "none",
         }}
       />
