@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense, useState, useRef, useCallback } from "react";
+import { Suspense, useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
 import dynamic from "next/dynamic";
 import HandTrackingModal from "@/components/ui/HandTrackingModal";
 import { useMediaPipe } from "@/hooks/useMediaPipe";
 import { useGPUTier } from "@/hooks/useGPUTier";
+import BlackHoleMesh, { BlackHoleMeshRef } from "@/components/3d/BlackHoleMesh";
 
 const GravitySimulation = dynamic(
   () => import("@/components/3d/GravitySimulation"),
@@ -22,15 +23,16 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
   const [entered, setEntered] = useState(false);
   const [isPinchPulsing, setIsPinchPulsing] = useState(false);
   const [mousePosState, setMousePosState] = useState({ x: 0, y: 0 });
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(canvasRef, { margin: "0px 0px 200px 0px" });
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { margin: "0px 0px 200px 0px" });
+  const blackHoleRef = useRef<BlackHoleMeshRef>(null);
   const perf = useGPUTier();
 
   const { status, handData, start, stop } = useMediaPipe();
   const isHandActive = status === "active" && handData.isTracking;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = sectionRef.current?.getBoundingClientRect();
     if (!rect) return;
     setMousePosState({
       x: ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -38,8 +40,8 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
     });
   }, []);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
+    const rect = sectionRef.current?.getBoundingClientRect();
     if (!rect) return;
     const t = e.touches[0];
     setMousePosState({
@@ -52,12 +54,19 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
     ? Math.max(0.5, Math.min(2.5, 1 + handData.z * 0.8))
     : 1;
 
+  // Send scale to the realistic black hole mesh whenever it changes
+  useEffect(() => {
+    if (blackHoleRef.current) {
+      blackHoleRef.current.setSize(blackHoleScale);
+    }
+  }, [blackHoleScale]);
+
   const gravCenter = isHandActive
     ? { x: (handData.x - 0.5) * 20, y: -(handData.y - 0.5) * 12 }
     : { x: mousePosState.x * 10, y: mousePosState.y * 6 };
 
   return (
-    <section id="interactive" className="relative" style={{ minHeight: "100vh" }}>
+    <section ref={sectionRef} id="interactive" className="relative" style={{ minHeight: "100vh" }}>
 
       {/* Pre-entry: dramatic build-up screen */}
       <AnimatePresence mode="wait">
@@ -239,7 +248,6 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
 
             {/* Full-screen canvas */}
             <div
-              ref={canvasRef}
               className="absolute inset-0 cursor-crosshair"
               onMouseMove={handleMouseMove}
               onTouchMove={handleTouchMove}
@@ -257,19 +265,10 @@ export default function InteractiveSection({ triggerPulse }: InteractiveSectionP
                 <pointLight position={[0, 0, 10]} intensity={0.5} color="#06b6d4" distance={50} />
 
                 <Suspense fallback={null}>
-                  {/* Central black hole */}
-                  <mesh position={[gravCenter.x, gravCenter.y, 0]} scale={blackHoleScale}>
-                    <sphereGeometry args={[0.6, 20, 20]} />
-                    <meshBasicMaterial color="#000000" />
-                  </mesh>
-                  <mesh position={[gravCenter.x, gravCenter.y, 0]} scale={blackHoleScale}>
-                    <torusGeometry args={[0.8, 0.05, 8, 64]} />
-                    <meshBasicMaterial color="#c084fc" transparent opacity={0.9} />
-                  </mesh>
-                  <mesh position={[gravCenter.x, gravCenter.y, 0]} scale={blackHoleScale}>
-                    <torusGeometry args={[1.15, 0.025, 8, 64]} />
-                    <meshBasicMaterial color="#06b6d4" transparent opacity={0.4} />
-                  </mesh>
+                  {/* Realistic central black hole */}
+                  <group position={[gravCenter.x, gravCenter.y, 0]}>
+                    <BlackHoleMesh ref={blackHoleRef} />
+                  </group>
 
                   <GravitySimulation
                     particleCount={perf.particleCount}
